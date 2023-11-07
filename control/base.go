@@ -43,9 +43,9 @@ func SetServer(ctx context.Context, host, cate string, wg *sync.WaitGroup) {
 	defer wg.Done()
 	var message string
 	if cate == set_type[START_SERVER] {
-		message = fmt.Sprintf("執行%s .... 會比較久 大概三分鐘\n", cate)
+		message = fmt.Sprintf("<b style='color:red;'>執行%s .... 會比較久 大概三分鐘</b>\n", cate)
 	} else {
-		message = fmt.Sprintf("執行%s\n", cate)
+		message = fmt.Sprintf("<b style='color:blue;'>執行%s<b>\n", cate)
 	}
 	statusChan <- message
 
@@ -65,10 +65,23 @@ func SetServer(ctx context.Context, host, cate string, wg *sync.WaitGroup) {
 		params = []string{sshhost, "-tt", "sh", "/root/get_date.sh -u"}
 	}
 	cmdStr := fmt.Sprintf("%s %s", cmd, strings.Join(params, " "))
+	ExecCmd(cmdStr)
+}
 
-	//out, err := exec.Command("/bin/sh", "-c", cmdStr).Output()
+func SetDate(sdate, host string, wg *sync.WaitGroup) {
+	defer wg.Done()
+	message := fmt.Sprintf("<b style='color:blue;'>執行set date<b>\n")
+	statusChan <- message
+	cmd := "ssh"
+	sshhost := fmt.Sprintf("root@%s", host)
+	params := []string{sshhost, "sh", "/root/set_date.sh", fmt.Sprintf("'%s'", sdate)}
+
+	cmdStr := fmt.Sprintf("%s %s", cmd, strings.Join(params, " "))
+	ExecCmd(cmdStr)
+}
+
+func ExecCmd(cmdStr string) {
 	command := exec.Command("/bin/sh", "-c", cmdStr)
-
 	stdout, err := command.StdoutPipe()
 	ChkErr(err)
 	stderr, err := command.StderrPipe()
@@ -98,23 +111,8 @@ func SetServer(ctx context.Context, host, cate string, wg *sync.WaitGroup) {
 	if err := command.Wait(); err != nil {
 		fmt.Println("命令执行失败:", err)
 	}
-}
 
-func SetDate(sdate, host string, wg *sync.WaitGroup) {
-	defer wg.Done()
-	statusChan <- "執行set date"
-	cmd := "ssh"
-	sshhost := fmt.Sprintf("root@%s", host)
-	params := []string{sshhost, "sh", "/root/set_date.sh", fmt.Sprintf("'%s'", sdate)}
-
-	cmdStr := fmt.Sprintf("%s %s", cmd, strings.Join(params, " "))
-	ExecCmd(cmdStr)
-}
-
-func ExecCmd(cmdStr string) {
-	out, err := exec.Command("/bin/sh", "-c", cmdStr).Output()
-	ChkErr(err)
-	statusChan <- string(out)
+	//statusChan <- string(out)
 }
 
 func CHttp() {

@@ -77,16 +77,11 @@
 
         function addMessage(message) {
             if(typeof(message)==='string'){
-              
                 const messagesDiv = document.getElementById('messages');
-                // 创建一个换行元素
-                const lineBreak = document.createElement('br');
-                messagesDiv.appendChild(lineBreak); // 添加换行
-                 
-                const executionResultLi = document.createElement('span');
-                executionResultLi.textContent = message;
+                const executionResultLi = document.createElement('div');
+                executionResultLi.innerHTML = message; // 使用innerHTML将消息解析为HTML
                 messagesDiv.appendChild(executionResultLi);
-            }
+              }
         }
         $("#select").change(function(){
             if($(this).val() === 'set_date'){
