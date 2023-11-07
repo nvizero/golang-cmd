@@ -17,7 +17,6 @@ import (
 
 var statusChan = make(chan string, 20)
 var params []string
-var show_cate string
 
 type MyForm struct {
 	Host     string `form:"host"`
