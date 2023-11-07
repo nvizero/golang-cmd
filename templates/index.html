@@ -1,0 +1,138 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>My Web Page</title>
+
+    <link rel="stylesheet" href="https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/css/bootstrap.min.css">
+    <link rel="stylesheet" href="https://code.jquery.com/ui/1.12.1/themes/base/jquery-ui.css">
+    <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+    <script src="https://code.jquery.com/ui/1.12.1/jquery-ui.js"></script>
+
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/jquery-datetimepicker/2.5.20/jquery.datetimepicker.min.css">
+    <script type="text/javascript" src="https://cdnjs.cloudflare.com/ajax/libs/jquery/1.12.4/jquery.min.js"></script>
+    <script type="text/javascript" src="https://cdnjs.cloudflare.com/ajax/libs/jquery-datetimepicker/2.5.20/jquery.datetimepicker.full.min.js"></script>
+    <script type="text/javascript" src="./static/zh-tw.js"></script>
+
+    <style type="text/css">
+     
+    ul{
+        list-style-type:none;
+        margin:0px;
+    }
+    #messages{
+        padding-left:-40px !important;
+    }
+    #date{
+        display: none;
+    }
+    </style>
+</head>
+<body>
+     <div class="container">
+        <h2>{{.Title}}</h2>
+        <form method="post" id="myForm" action="/submit">
+            <div class="form-group">
+                <label for="select">分類:</label>
+                <select class="form-control" name="category" id="select">
+                    <option value="get_date">取得時間</option>
+                    <option value="set_date">設定時間</option>                    
+                    <option value="status">伺服器狀態</option>
+                </select>
+            </div>
+            <div class="form-group" id="date">
+                <label for="field1">日期:</label>
+                <input type="text" class="form-control" name="datetime" id="field1">
+            </div>
+            <div class="form-group">
+                <label for="field2">主機:</label>
+                <select class="form-control" name="server" id="field2">
+                    <option value="35.194.146.167">測試A</option>
+                    <option value="35.236.164.112">測試C</option>
+                </select>
+            </div>
+            <button type="submit" class="btn btn-primary">送出</button>
+        </form>
+ 
+        <div id="messages"> </div>
+
+    </div>
+
+    <script>
+        const messagesDiv = document.getElementById('messages');
+        const messageInput = document.getElementById('message');
+        const ws = new WebSocket('ws://localhost:8080/ws'); // WebSocket 服务器地址
+        // const ws = new WebSocket('ws://localhost:1119/ws'); // WebSocket 服务器地址
+
+        ws.onopen = function (event) {
+            addMessage('Connected to WebSocket server');
+        };
+
+        ws.onmessage = function (event) {
+            addMessage( event.data);
+        };
+
+        ws.onclose = function (event) {
+            addMessage('Connection closed');
+        };
+
+        function addMessage(message) {
+            if(typeof(message)==='string'){
+              
+                const messagesDiv = document.getElementById('messages');
+                // 创建一个换行元素
+                const lineBreak = document.createElement('br');
+                messagesDiv.appendChild(lineBreak); // 添加换行
+                 
+                const executionResultLi = document.createElement('span');
+                executionResultLi.textContent = message;
+                messagesDiv.appendChild(executionResultLi);
+            }
+        }
+        $("#select").change(function(){
+            if($(this).val() === 'set_date'){
+                $("#date").css("display", "block"); // 使用 "block" 来显示
+            } else {
+                $("#date").css("display", "none"); // 隐藏日期输入字段
+            }
+        });
+        jQuery.datetimepicker.setLocale('zh-TW', {
+            lang: 'zh-TW',
+            timepicker: true,
+            format: 'Y-m-d H:i:s',
+        });
+        $("#field1").datetimepicker({
+            format: 'Y-m-d H:i:s',
+             lang: 'zh-TW' // 设置语言为中文（台湾）
+        });
+        // 使用 jQuery 处理表单提交
+        $('#myForm').submit(function (event) {
+            if($("#select").val()==="set_date" && $("#field1").val()===''){
+                alert('請輸入時間!');
+                return false;
+            }
+            event.preventDefault(); // 阻止表单默认提交
+            $('#messages').empty();
+            // 获取表单数据
+            const formData = {
+                date: $('#field1').val(),
+                host: $('#field2').val(),
+                category: $('#select').val(),
+            };
+
+            // 发送 AJAX POST 请求
+            $.ajax({
+                type: 'POST',
+                url: '/submit', // 设置提交目标
+                data: formData,
+                success: function (response) {
+                    console.log(response)
+                    //addMessage(response);
+                },
+                error: function () {
+                    addMessage('Error occurred during the AJAX request.');
+                }
+            });
+        });
+    </script>
+</body>
+</html>
