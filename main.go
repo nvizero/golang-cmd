@@ -10,7 +10,7 @@ import (
 )
 
 func main() {
-	control.CHttp()
+	control.Ma()
 }
 
 func ssn() {

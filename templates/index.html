@@ -60,7 +60,7 @@
     <script>
         const messagesDiv = document.getElementById('messages');
         const messageInput = document.getElementById('message');
-        const ws = new WebSocket('ws://localhost:8080/ws'); // WebSocket 服务器地址
+        const ws = new WebSocket('ws://192.168.24.22:8080/ws'); // WebSocket 服务器地址
         // const ws = new WebSocket('ws://localhost:1119/ws'); // WebSocket 服务器地址
 
         ws.onopen = function (event) {
