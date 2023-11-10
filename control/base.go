@@ -74,7 +74,6 @@ func SetDate(sdate, host string, wg *sync.WaitGroup) {
 	cmd := "ssh"
 	sshhost := fmt.Sprintf("root@%s", host)
 	params := []string{sshhost, "sh", "/root/set_date.sh", fmt.Sprintf("'%s'", sdate)}
-
 	cmdStr := fmt.Sprintf("%s %s", cmd, strings.Join(params, " "))
 	ExecCmd(cmdStr)
 }
@@ -143,12 +142,12 @@ func CHttp() {
 
 		if category == "set_date" {
 
-			// go func() {
-			// 	wg.Add(1)
-			// 	SetServer(ctx, server_host, set_type[STOP_SERVER], &wg)
-			// 	done <- struct{}{} // 发送完成信号
-			// }()
-			// <-done // 等待第一个 goroutine 完成
+			go func() {
+				wg.Add(1)
+				SetServer(ctx, server_host, set_type[STOP_SERVER], &wg)
+				done <- struct{}{} // 发送完成信号
+			}()
+			<-done // 等待第一个 goroutine 完成
 
 			go func() {
 				wg.Add(1)
@@ -157,16 +156,18 @@ func CHttp() {
 			}()
 			<-done // 等待第二个 goroutine 完成
 
-			// go func() {
-			// 	wg.Add(1)
-			// 	SetServer(ctx, server_host, set_type[START_SERVER], &wg)
-			// 	done <- struct{}{} // 发送完成信号
-			// }()
-			// <-done // 等待第一个 goroutine 完成
+			go func() {
+				wg.Add(1)
+				SetServer(ctx, server_host, set_type[START_SERVER], &wg)
+				done <- struct{}{} // 发送完成信号
+			}()
+			<-done // 等待第一个 goroutine 完成
 		} else if category == "status" {
 			go func() {
 				wg.Add(1)
-				SetServer(ctx, server_host, set_type[STATUS], &wg)
+				//SetServer(ctx, server_host, set_type[STATUS], &wg)
+				statusChan <- "exec ma"
+				Ma()
 				done <- struct{}{} // 发送完成信号
 			}()
 			<-done // 等待第一个 goroutine 完成

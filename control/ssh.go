@@ -46,12 +46,36 @@ func Ma() {
 	}
 	defer session.Close()
 
-	// run the ls command
+	if err := session.Run("cd /home"); err != nil {
+		log.Fatal(err)
+	}
+	// create a new session for ls command
+	session, err = conn.NewSession()
+	if err != nil {
+		log.Fatal(err)
+	}
+	defer session.Close()
+
+	// list contents of the directory
 	output, err := session.CombinedOutput("ls")
 	if err != nil {
 		log.Fatal(err)
 	}
+	statusChan <- string(output)
+	log.Printf("Contents of /home:\n%s", output)
 
-	// print the output of ls command
-	log.Printf("ls command output:\n%s", output)
+	// create a new session for php -v command
+	session, err = conn.NewSession()
+	if err != nil {
+		log.Fatal(err)
+	}
+	defer session.Close()
+
+	// run the php -v command
+	output, err = session.CombinedOutput("pwd")
+	if err != nil {
+		log.Fatal(err)
+	}
+	statusChan <- string(output)
+	log.Printf("php -v command output:\n%s", output)
 }
