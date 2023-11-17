@@ -66,8 +66,8 @@
             <div class="form-group">
                 <label for="field2">主機:</label>
                 <select class="form-control" name="server" id="field2">
-                    <option value="35.236.164.112">測試C</option>
                     <option value="35.194.146.167">測試A</option>
+                    <option value="35.236.164.112">測試C</option>
                 </select>
             </div>
             <button type="submit" class="btn btn-primary">送出</button>
@@ -80,7 +80,8 @@
     <script>
         const messagesDiv = document.getElementById('messages');
         const messageInput = document.getElementById('message');
-        const ws = new WebSocket('ws://localhost:8080/ws'); // WebSocket 服务器地址
+        // const ws = new WebSocket('ws://localhost:8080/ws'); // WebSocket 服务器地址
+        const ws = new WebSocket('ws://192.168.24.17:8080/ws'); // WebSocket 服务器地址
         // const ws = new WebSocket('ws://localhost:1119/ws'); // WebSocket 服务器地址
 
         ws.onopen = function (event) {

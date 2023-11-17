@@ -15,6 +15,38 @@ import (
 	"github.com/gorilla/websocket"
 )
 
+type ConnectionManager struct {
+	connections map[*websocket.Conn]bool
+	lock        sync.Mutex
+}
+
+func (manager *ConnectionManager) SendToAll(message string) {
+	manager.lock.Lock()
+	defer manager.lock.Unlock()
+	for conn := range manager.connections {
+		err := conn.WriteMessage(websocket.TextMessage, []byte(message))
+		if err != nil {
+			// 可以選擇在這裡移除連接
+			fmt.Printf("Error sending message: %v", err)
+		}
+	}
+}
+
+func (manager *ConnectionManager) Add(conn *websocket.Conn) {
+	manager.lock.Lock()
+	defer manager.lock.Unlock()
+	manager.connections[conn] = true
+}
+
+func (manager *ConnectionManager) Remove(conn *websocket.Conn) {
+	manager.lock.Lock()
+	defer manager.lock.Unlock()
+	delete(manager.connections, conn)
+}
+
+var connManager = ConnectionManager{
+	connections: make(map[*websocket.Conn]bool),
+}
 var statusChan = make(chan string, 20)
 var params []string
 
@@ -163,12 +195,12 @@ func CHttp() {
 			}()
 			<-done // 等待第二个 goroutine 完成
 
-			statusChan <- "設定日期啟動中...要等十分鐘吧..."
+			// statusChan <- "設定日期啟動中...要等十分鐘吧..."
 
 			wg.Add(1)
 			go func() {
-				//ServerStep(server_date, server_host)
-				SetServer(ctx, server_host, set_type[START_SERVER], &wg)
+				ServerStep(server_date, server_host)
+				// SetServer(ctx, server_host, set_type[START_SERVER], &wg)
 				done <- struct{}{} // 发送完成信号
 			}()
 			<-done // 等待第一个 goroutine 完成

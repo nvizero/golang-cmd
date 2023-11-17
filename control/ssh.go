@@ -11,7 +11,6 @@ import (
 )
 
 func ServerStep(server_date, host string) {
-	statusChan <- "ServerStep1.."
 
 	keyPath := os.ExpandEnv("/Users/tsengyenchi/.ssh/id_rsa")
 	keyBytes, err := ioutil.ReadFile(keyPath)
@@ -24,7 +23,6 @@ func ServerStep(server_date, host string) {
 		log.Fatalf("Failed to parse private key: %s", err)
 	}
 
-	statusChan <- "ServerStep2.."
 	// ssh config
 	config := &ssh.ClientConfig{
 		Auth: []ssh.AuthMethod{
