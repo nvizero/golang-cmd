@@ -1,6 +1,7 @@
 package control
 
 import (
+	"fmt"
 	"io/ioutil"
 	"log"
 	"os"
@@ -9,7 +10,9 @@ import (
 	"golang.org/x/crypto/ssh"
 )
 
-func Ma() {
+func ServerStep(server_date, host string) {
+	statusChan <- "ServerStep1.."
+
 	keyPath := os.ExpandEnv("/Users/tsengyenchi/.ssh/id_rsa")
 	keyBytes, err := ioutil.ReadFile(keyPath)
 	if err != nil {
@@ -21,6 +24,7 @@ func Ma() {
 		log.Fatalf("Failed to parse private key: %s", err)
 	}
 
+	statusChan <- "ServerStep2.."
 	// ssh config
 	config := &ssh.ClientConfig{
 		Auth: []ssh.AuthMethod{
@@ -32,9 +36,9 @@ func Ma() {
 	}
 
 	// connect to ssh server
-	conn, err := ssh.Dial("tcp", "173.249.199.139:22", config)
+	conn, err := ssh.Dial("tcp", fmt.Sprintf("%s:22", host), config)
 	if err != nil {
-		log.Fatal(err)
+		log.Fatal("??11", err)
 	}
 
 	defer conn.Close()
@@ -42,40 +46,14 @@ func Ma() {
 	// create a new session
 	session, err := conn.NewSession()
 	if err != nil {
-		log.Fatal(err)
+		log.Fatal("??221", err)
 	}
+	statusChan <- "ServerStep2.5."
 	defer session.Close()
 
-	if err := session.Run("cd /home"); err != nil {
-		log.Fatal(err)
+	statusChan <- "ServerStep3.."
+	if err := session.Run("cd /data/gameserver/ && /bin/bash start.sh"); err != nil {
+		log.Fatal("??33/", err)
 	}
-	// create a new session for ls command
-	session, err = conn.NewSession()
-	if err != nil {
-		log.Fatal(err)
-	}
-	defer session.Close()
-
-	// list contents of the directory
-	output, err := session.CombinedOutput("ls")
-	if err != nil {
-		log.Fatal(err)
-	}
-	statusChan <- string(output)
-	log.Printf("Contents of /home:\n%s", output)
-
-	// create a new session for php -v command
-	session, err = conn.NewSession()
-	if err != nil {
-		log.Fatal(err)
-	}
-	defer session.Close()
-
-	// run the php -v command
-	output, err = session.CombinedOutput("pwd")
-	if err != nil {
-		log.Fatal(err)
-	}
-	statusChan <- string(output)
-	log.Printf("php -v command output:\n%s", output)
+	statusChan <- "ServerStep4.."
 }

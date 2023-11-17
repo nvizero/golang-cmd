@@ -60,7 +60,6 @@ func SetServer(ctx context.Context, host, cate string, wg *sync.WaitGroup) {
 		params = []string{sshhost, "-tt", "sh", "/root/start.sh -u"}
 	case set_type[STATUS]:
 		params = []string{sshhost, "-tt", "sh", "/root/status.sh -u"}
-		fmt.Println(params)
 	default:
 		params = []string{sshhost, "-tt", "sh", "/root/get_date.sh -u"}
 	}
@@ -80,7 +79,7 @@ func SetDate(sdate, host string, wg *sync.WaitGroup) {
 }
 
 func ExecCmd(cmdStr string) {
-	command := exec.Command("/bin/bash", "-c", cmdStr)
+	command := exec.Command("/bin/sh", "-c", cmdStr)
 	stdout, err := command.StdoutPipe()
 	ChkErr(err)
 	stderr, err := command.StderrPipe()
@@ -90,8 +89,8 @@ func ExecCmd(cmdStr string) {
 		log.Fatal("--", err)
 	}
 
-	// 在兩個 goroutine 處理 stdout 和 stderr
 	go func() {
+		defer command.Wait()
 		scanner := bufio.NewScanner(stdout)
 		for scanner.Scan() {
 			statusChan <- scanner.Text()
@@ -99,6 +98,7 @@ func ExecCmd(cmdStr string) {
 	}()
 
 	go func() {
+		defer command.Wait()
 		scanner := bufio.NewScanner(stderr)
 		for scanner.Scan() {
 			statusChan <- scanner.Text()
@@ -107,14 +107,7 @@ func ExecCmd(cmdStr string) {
 
 	// 等待命令执行完成
 	if err := command.Wait(); err != nil {
-		if exitErr, ok := err.(*exec.ExitError); ok {
-			// 這裡可以處理非零退出狀態的情況
-			fmt.Printf("命令執行失敗，退出狀態：%d\n", exitErr.ExitCode())
-		} else {
-			// 其他類型的錯誤
-			statusChan <- fmt.Sprintf("命令执行失败.......%s", err)
-			fmt.Printf("命令执行失败.......%s", err)
-		}
+		fmt.Println("命令执行失败:", err)
 	}
 
 	//statusChan <- string(out)
@@ -149,42 +142,45 @@ func CHttp() {
 
 		if category == "set_date" {
 
-			wg.Add(1)
+			// go func() {
+			// 	wg.Add(1)
+			// done <- struct{}{} // 发送完成信号
+			// }()
+			// <-done // 等待第一个 goroutine 完成
 			go func() {
+				wg.Add(1)
 				SetServer(ctx, server_host, set_type[STOP_SERVER], &wg)
 				done <- struct{}{} // 发送完成信号
 			}()
 			<-done // 等待第一个 goroutine 完成
 
-			wg.Add(1)
 			go func() {
+				wg.Add(1)
 				SetDate(server_date, server_host, &wg)
 				done <- struct{}{} // 发送完成信号
 			}()
 			<-done // 等待第二个 goroutine 完成
-
-			statusChan <- "設定日期啟動中...要等十分鐘吧..."
-
-			wg.Add(1)
-			go func() {
-				//ServerStep(server_date, server_host)
-				SetServer(ctx, server_host, set_type[START_SERVER], &wg)
-				done <- struct{}{} // 发送完成信号
-			}()
-			<-done // 等待第一个 goroutine 完成
-
-			statusChan <- ".完成.."
+			time.Sleep(2 * time.Second)
+			statusChan <- "設定日期啟動中..."
+			ServerStep(server_date, server_host)
+			// go func() {
+			// 	wg.Add(1)
+			// 	SetServer(ctx, server_host, set_type[START_SERVER], &wg)
+			// 	done <- struct{}{} // 发送完成信号
+			// }()
+			// <-done // 等待第一个 goroutine 完成
 		} else if category == "status" {
-			wg.Add(1)
 			go func() {
+				wg.Add(1)
 				SetServer(ctx, server_host, set_type[STATUS], &wg)
+				statusChan <- "exec ma"
 				done <- struct{}{} // 发送完成信号
 			}()
 			<-done // 等待第一个 goroutine 完成
 
 		} else {
-			wg.Add(1)
 			go func() {
+				wg.Add(1)
 				SetServer(ctx, server_host, set_type[GET_DATE], &wg)
 				done <- struct{}{} // 发送完成信号
 			}()
