@@ -153,6 +153,12 @@ func ExecCmd(cmdStr string) {
 }
 
 func CHttp() {
+	// 創建一個單獨的 go 協程來處理 statusChan
+	go func() {
+		for status := range statusChan {
+			connManager.SendToAll(status)
+		}
+	}()
 	r := gin.Default()
 	r.Static("/static", "templates/static")
 	r.LoadHTMLGlob("templates/*.html") // Load HTML templates from the "templates" directory
@@ -241,31 +247,22 @@ func CHttp() {
 func handleWebSocket(w http.ResponseWriter, r *http.Request) {
 	conn, err := upgrader.Upgrade(w, r, nil)
 	if err != nil {
+		log.Println(err)
 		return
 	}
 	defer conn.Close()
 
-	go func() {
-		for {
-			select {
-			case status := <-statusChan:
-				// 在这里将状态信息发送到WebSocket连接
-				if err := conn.WriteMessage(websocket.TextMessage, []byte(status)); err != nil {
-					return
-				}
-			}
-		}
-	}()
+	connManager.Add(conn) // 加入連接管理器
 
+	// 這個協程只負責讀取來自該連接的消息
 	for {
-		messageType, p, err := conn.ReadMessage()
+		_, message, err := conn.ReadMessage()
 		if err != nil {
-			return
+			connManager.Remove(conn) // 斷開連接時從連接池中移除
+			break
 		}
-
-		fmt.Println("hi", messageType)
-		fmt.Println("p=", p)
-		// 这里可以处理来自WebSocket客户端的消息
+		// 處理 message
+		fmt.Println(string(message))
 	}
 }
 
