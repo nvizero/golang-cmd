@@ -105,7 +105,12 @@
                 modifiedMessage = modifiedMessage.replace(/stopped!/g, '<span class="stop-word">stopped</span>');
                 modifiedMessage = modifiedMessage.replace(/running!/g, '<span class="running">running!</span>');
                 executionResultLi.innerHTML = convertAnsiToHtml(message); // 使用innerHTML将消息解析为HTML
-                messagesDiv.appendChild(executionResultLi);
+                // 插入到容器的最前面
+                if (messagesDiv.firstChild) {
+                    messagesDiv.insertBefore(executionResultLi, messagesDiv.firstChild);
+                } else {
+                    messagesDiv.appendChild(executionResultLi);
+                }
             }
         }
 

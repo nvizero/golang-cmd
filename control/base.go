@@ -15,38 +15,6 @@ import (
 	"github.com/gorilla/websocket"
 )
 
-type ConnectionManager struct {
-	connections map[*websocket.Conn]bool
-	lock        sync.Mutex
-}
-
-func (manager *ConnectionManager) SendToAll(message string) {
-	manager.lock.Lock()
-	defer manager.lock.Unlock()
-	for conn := range manager.connections {
-		err := conn.WriteMessage(websocket.TextMessage, []byte(message))
-		if err != nil {
-			// 可以選擇在這裡移除連接
-			fmt.Printf("Error sending message: %v", err)
-		}
-	}
-}
-
-func (manager *ConnectionManager) Add(conn *websocket.Conn) {
-	manager.lock.Lock()
-	defer manager.lock.Unlock()
-	manager.connections[conn] = true
-}
-
-func (manager *ConnectionManager) Remove(conn *websocket.Conn) {
-	manager.lock.Lock()
-	defer manager.lock.Unlock()
-	delete(manager.connections, conn)
-}
-
-var connManager = ConnectionManager{
-	connections: make(map[*websocket.Conn]bool),
-}
 var statusChan = make(chan string, 20)
 var params []string
 
@@ -69,6 +37,8 @@ const (
 	START_SERVER = 2
 	STATUS       = 3
 )
+
+var connManager = NewConnectionManager()
 
 func SetServer(ctx context.Context, host, cate string, wg *sync.WaitGroup) {
 	defer wg.Done()
@@ -252,20 +222,27 @@ func handleWebSocket(w http.ResponseWriter, r *http.Request) {
 	}
 	defer conn.Close()
 
-	connManager.Add(conn) // 加入連接管理器
+	connManager.Add(conn)
 
-	// 這個協程只負責讀取來自該連接的消息
+	go func() {
+		for message := range connManager.connections[conn] {
+			if err := conn.WriteMessage(websocket.TextMessage, []byte(message)); err != nil {
+				break
+			}
+		}
+	}()
+
+	// 处理从该连接读取的消息
 	for {
 		_, message, err := conn.ReadMessage()
 		if err != nil {
-			connManager.Remove(conn) // 斷開連接時從連接池中移除
+			connManager.Remove(conn)
 			break
 		}
-		// 處理 message
-		fmt.Println(string(message))
+		// 处理消息，例如，将回应发送回同一连接
+		connManager.SendToConnection(conn, "回应: "+string(message))
 	}
 }
-
 func ChkErr(err error) {
 	if err != nil {
 		log.Fatal("------error-------   \n", err)
